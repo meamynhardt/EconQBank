@@ -161,4 +161,13 @@ else:
     if st.session_state.answered:
         if current_q_num < total_q:
             if st.button("Next Question"):
-                st.session_state.current_q
+                st.session_state.current_q_index += 1  # Make sure this says current_q_index!
+                st.session_state.answered = False
+                st.rerun()
+        else:
+            st.info(f"Quiz Complete! Your final score is {st.session_state.score} out of {total_q}.")
+            if st.button("Restart Quiz"):
+                st.session_state.current_q_index = 0
+                st.session_state.score = 0
+                st.session_state.answered = False
+                st.rerun()
