@@ -153,7 +153,6 @@ else:
         else:
             st.error(f"Incorrect. Correct answer: {row['Answer']}")
         st.session_state.answered = True
-        st.rerun()
 
     if st.session_state.answered and st.button("Next"):
         st.session_state.idx = (st.session_state.idx + 1) % total_q
