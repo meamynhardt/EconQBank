@@ -6,31 +6,63 @@ from fpdf import FPDF
 # Set page configuration
 st.set_page_config(page_title="Economics QBank Quiz", layout="wide")
 
-# 1. Load Data: 'utf-8-sig' handles Excel/Windows CSVs better than latin-1
+# 1. Load Data
 @st.cache_data
 def load_data():
     return pd.read_csv("Economics QBank - Qbank.csv", encoding='utf-8-sig')
 
 df = load_data()
 
-# 2. PDF Generator
+# 2. PDF Generator (With "Keep Together" Logic)
 def generate_pdf(filtered_df):
     pdf = FPDF()
     pdf.add_page()
     
     def clean(text):
         text = str(text)
-        # Standardize quotes and dashes to prevent encoding crashes
         replacements = {'“': '"', '”': '"', '‘': "'", '’': "'", '–': '-', '—': '-'}
         for char, rep in replacements.items():
             text = text.replace(char, rep)
         return text.encode('latin-1', 'replace').decode('latin-1')
 
+    # A helper function to measure how tall a question block will be
+    def get_q_height(row, count):
+        dummy = FPDF()
+        dummy.add_page()
+        dummy.set_auto_page_break(auto=False) # Prevent breaking to get continuous height
+        start_y = dummy.get_y()
+        
+        dummy.set_font("Arial", 'B', 12)
+        dummy.multi_cell(0, 8, txt=f"{count}. {clean(row['Question'])}")
+        
+        for col in ['Image', 'Image_1']:
+            if col in row and pd.notna(row[col]) and str(row[col]).strip():
+                path = str(row[col]).strip()
+                if os.path.exists(path):
+                    dummy.image(path, w=100)
+                    dummy.ln(2)
+        
+        if pd.notna(row['Options']):
+            dummy.set_font("Arial", '', 11)
+            dummy.multi_cell(0, 6, txt=clean(row['Options']))
+        
+        dummy.ln(8)
+        return dummy.get_y() - start_y
+
+    # Build the Actual PDF
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, txt="Economics Quiz (Selected Questions)", ln=True, align='C')
     pdf.ln(10)
     
     for count, (index, row) in enumerate(filtered_df.iterrows(), 1):
+        # Check exactly how much space is needed for this question
+        required_height = get_q_height(row, count)
+        
+        # A standard A4 page is ~297mm tall. 280mm is the safe bottom margin.
+        # If the question doesn't fit in the remaining space, force a new page!
+        if pdf.get_y() + required_height > 280:
+            pdf.add_page()
+            
         pdf.set_font("Arial", 'B', 12)
         pdf.multi_cell(0, 8, txt=f"{count}. {clean(row['Question'])}")
         
@@ -45,14 +77,22 @@ def generate_pdf(filtered_df):
             pdf.set_font("Arial", '', 11)
             pdf.multi_cell(0, 6, txt=clean(row['Options']))
         pdf.ln(8)
+        
     return pdf.output(dest='S').encode('latin-1')
 
-# 3. Sidebar Filters
+# 3. Sidebar Filters with CUSTOM Sorting
 st.sidebar.header("Quiz Settings")
+
 levels = sorted(df['Level'].dropna().unique().tolist())
-difficulties = sorted(df['Difficulty'].dropna().unique().tolist())
 topics = sorted(df['Topic'].dropna().unique().tolist())
-objectives = sorted(df['Objective'].dropna().unique().tolist())
+
+diff_rank = {"Easy": 1, "Medium": 2, "Difficult": 3}
+raw_difficulties = df['Difficulty'].dropna().unique().tolist()
+difficulties = sorted(raw_difficulties, key=lambda x: diff_rank.get(x, 4))
+
+obj_rank = {"Recall": 1, "Understanding": 2, "Application": 3, "Analysis": 4, "Evaluation": 5}
+raw_objectives = df['Objective'].dropna().unique().tolist()
+objectives = sorted(raw_objectives, key=lambda x: obj_rank.get(x, 6))
 
 selected_level = st.sidebar.selectbox("Select Level", ["All"] + levels)
 selected_difficulty = st.sidebar.selectbox("Select Difficulty", ["All"] + difficulties)
@@ -83,7 +123,6 @@ st.title("Economics Quiz Generator")
 if len(filtered_df) == 0:
     st.warning("No questions match these filters.")
 else:
-    # --- VISUAL TALLY ---
     total_q = len(filtered_df)
     current_q_num = st.session_state.idx + 1
     
