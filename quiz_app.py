@@ -115,7 +115,7 @@ else:
     
     st.caption(f"Paper: {row['Paper']} | Topic: {row['Topic']} | Difficulty: {row['Difficulty']}")
     
-    st.write(f"**{row['Question']}**")
+    st.write(f"**{str(row['Question']).strip()}**")
     
     # --- FIRST IMAGE HANDLING LOGIC ---
     img_path_1 = str(row['Image']).strip()
