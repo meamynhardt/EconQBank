@@ -73,7 +73,8 @@ st.sidebar.header("Quiz Settings")
 
 levels = df['Level'].dropna().unique().tolist()
 difficulties = df['Difficulty'].dropna().unique().tolist()
-topics = df['Topic'].dropna().unique().tolist()
+# Sort the list alphabetically
+topics = sorted(df['Topic'].dropna().unique().tolist())
 objectives = df['Objective'].dropna().unique().tolist()
 
 selected_level = st.sidebar.selectbox("Select Level", ["All"] + levels)
