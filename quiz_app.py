@@ -130,14 +130,14 @@ else:
     opts = str(row['Options']).split('\n')
     choice = st.radio("Select Answer:", opts, index=None)
     
-    if st.button("Submit"):
+   if st.button("Submit"):
         if choice and choice.startswith(str(row['Answer']).strip()):
             st.success("Correct!")
             st.session_state.score += 1
         else:
             st.error(f"Incorrect. Correct answer: {row['Answer']}")
         st.session_state.answered = True
-        st.rerun()
+        # No rerun needed here!
 
     if st.session_state.answered and st.button("Next"):
         st.session_state.idx = (st.session_state.idx + 1) % total_q
