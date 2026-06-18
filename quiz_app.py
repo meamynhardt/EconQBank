@@ -13,7 +13,7 @@ def load_data():
 
 df = load_data()
 
-# 2. PDF Generator (With "Keep Together" Logic)
+# 2. PDF Generator (Centered Images & Consistent Spacing)
 def generate_pdf(filtered_df):
     pdf = FPDF()
     pdf.add_page()
@@ -29,24 +29,27 @@ def generate_pdf(filtered_df):
     def get_q_height(row, count):
         dummy = FPDF()
         dummy.add_page()
-        dummy.set_auto_page_break(auto=False) # Prevent breaking to get continuous height
+        dummy.set_auto_page_break(auto=False)
         start_y = dummy.get_y()
         
         dummy.set_font("Arial", 'B', 12)
         dummy.multi_cell(0, 8, txt=f"{count}. {clean(row['Question'])}")
+        dummy.ln(2) # Space after question text
         
         for col in ['Image', 'Image_1']:
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
-                    dummy.image(path, w=100)
-                    dummy.ln(2)
+                    img_w = 110 # Set uniform image width
+                    x_center = (210 - img_w) / 2 # Center horizontally on 210mm wide A4 page
+                    dummy.image(path, x=x_center, w=img_w)
+                    dummy.ln(4) # Space after image
         
         if pd.notna(row['Options']):
             dummy.set_font("Arial", '', 11)
             dummy.multi_cell(0, 6, txt=clean(row['Options']))
         
-        dummy.ln(8)
+        dummy.ln(10) # Fixed space between questions
         return dummy.get_y() - start_y
 
     # Build the Actual PDF
@@ -55,28 +58,30 @@ def generate_pdf(filtered_df):
     pdf.ln(10)
     
     for count, (index, row) in enumerate(filtered_df.iterrows(), 1):
-        # Check exactly how much space is needed for this question
         required_height = get_q_height(row, count)
         
-        # A standard A4 page is ~297mm tall. 280mm is the safe bottom margin.
-        # If the question doesn't fit in the remaining space, force a new page!
+        # If it doesn't fit in remaining space, force a new page
         if pdf.get_y() + required_height > 280:
             pdf.add_page()
             
         pdf.set_font("Arial", 'B', 12)
         pdf.multi_cell(0, 8, txt=f"{count}. {clean(row['Question'])}")
+        pdf.ln(2) # Space after question text
         
         for col in ['Image', 'Image_1']:
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
-                    pdf.image(path, w=100)
-                    pdf.ln(2)
+                    img_w = 110 # Set uniform image width
+                    x_center = (210 - img_w) / 2 # Center horizontally
+                    pdf.image(path, x=x_center, w=img_w)
+                    pdf.ln(4) # Space after image
         
         if pd.notna(row['Options']):
             pdf.set_font("Arial", '', 11)
             pdf.multi_cell(0, 6, txt=clean(row['Options']))
-        pdf.ln(8)
+            
+        pdf.ln(10) # Fixed space between questions
         
     return pdf.output(dest='S').encode('latin-1')
 
@@ -110,7 +115,6 @@ if 'idx' not in st.session_state: st.session_state.idx = 0
 if 'score' not in st.session_state: st.session_state.score = 0
 if 'answered' not in st.session_state: st.session_state.answered = False
 
-# Reset if filters change
 if st.sidebar.button("Apply Filters"):
     st.session_state.idx = 0
     st.session_state.score = 0
@@ -135,6 +139,10 @@ else:
     st.markdown("---")
     
     row = filtered_df.iloc[st.session_state.idx]
+    
+    # --- ADDED GREYED OUT TOPIC ---
+    st.caption(f"Topic: {row['Topic']}")
+    
     st.write(f"**{str(row['Question']).strip()}**")
     
     for col in ['Image', 'Image_1']:
