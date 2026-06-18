@@ -13,7 +13,7 @@ def load_data():
 
 df = load_data()
 
-# 2. PDF Generator (Kept same formatting logic as requested)
+# 2. PDF Generator
 def generate_pdf(filtered_df):
     pdf = FPDF()
     pdf.add_page()
@@ -88,7 +88,7 @@ if selected_difficulty != "All": filtered_df = filtered_df[filtered_df['Difficul
 if selected_topic != "All": filtered_df = filtered_df[filtered_df['Topic'] == selected_topic]
 if selected_objective != "All": filtered_df = filtered_df[filtered_df['Objective'] == selected_objective]
 
-# 4. Main UI Logic
+# 4. State Management
 if 'idx' not in st.session_state: st.session_state.idx = 0
 if 'score' not in st.session_state: st.session_state.score = 0
 if 'answered' not in st.session_state: st.session_state.answered = False
@@ -99,6 +99,7 @@ if st.sidebar.button("Apply Filters"):
     st.session_state.answered = False
     st.rerun()
 
+# 5. Main UI
 st.title("Economics Quiz Generator")
 
 if len(filtered_df) == 0:
@@ -117,24 +118,21 @@ else:
     
     row = filtered_df.iloc[st.session_state.idx]
     
-    # REMOVED: st.caption(f"Topic: {row['Topic']}")
+    # Display Question
     st.write(f"**{str(row['Question']).strip()}**")
     
-    # IMAGE HANDLING: Only displays if file exists; no error message if missing
+    # Display Images
     for col in ['Image', 'Image_1']:
         if col in row and pd.notna(row[col]) and str(row[col]).strip():
             path = str(row[col]).strip()
             if os.path.exists(path):
                 st.image(path)
 
-    opts = str(row['Options']).split('\n')
-    choice = st.radio("Select Answer:", opts, index=None)
-    
-	# Ensure this block is aligned with the 'row = ...' code above it
+    # Radio Selection
     opts = str(row['Options']).split('\n')
     choice = st.radio("Select Answer:", opts, index=None, key=f"radio_{st.session_state.idx}")
     
-    # This 'if' should have the same indentation as 'opts'
+    # Submit & Next
     if st.button("Submit"):
         if choice and choice.startswith(str(row['Answer']).strip()):
             st.success("Correct!")
@@ -146,4 +144,6 @@ else:
     if st.session_state.answered and st.button("Next"):
         st.session_state.idx = (st.session_state.idx + 1) % total_q
         st.session_state.answered = False
-        st.rerun
+        st.rerun()
+
+    st.sidebar.download_button("Download PDF", generate_pdf(filtered_df), "quiz.pdf", "application/pdf")
