@@ -13,7 +13,7 @@ def load_data():
 
 df = load_data()
 
-# 2. PDF Generator
+# 2. PDF Generator (Standardized & Centered Image Width)
 def generate_pdf(filtered_df):
     pdf = FPDF()
     pdf.add_page()
@@ -37,6 +37,7 @@ def generate_pdf(filtered_df):
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
+                    # Standardized PDF image width: 110mm, centered horizontally
                     dummy.image(path, x=(210-110)/2, w=110)
                     dummy.ln(4)
         if pd.notna(row['Options']):
@@ -60,6 +61,7 @@ def generate_pdf(filtered_df):
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
+                    # Standardized PDF image width: 110mm, centered horizontally
                     pdf.image(path, x=(210-110)/2, w=110)
                     pdf.ln(4)
         if pd.notna(row['Options']):
@@ -118,19 +120,20 @@ else:
     
     row = filtered_df.iloc[st.session_state.idx]
     
-    # Displays the topic content cleanly as grey text with no heading label
+    # Displays raw topic content cleanly as grey text
     if 'Topic' in row and pd.notna(row['Topic']):
         st.caption(f"{str(row['Topic']).strip()}")
     
     # Display Question
     st.write(f"**{str(row['Question']).strip()}**")
     
-    # Display Images ONLY if they exist
+    # Display Images with STANDARDIZED size in UI
     for col in ['Image', 'Image_1']:
         if col in row and pd.notna(row[col]) and str(row[col]).strip():
             path = str(row[col]).strip()
             if os.path.exists(path):
-                st.image(path)
+                # Standardized UI width: 350 pixels wide
+                st.image(path, width=350)
 
     # Radio Selection
     opts = str(row['Options']).split('\n')
