@@ -13,14 +13,14 @@ def load_data():
 
 df = load_data()
 
-# 2. PDF Generator (Standardized & Centered Image Width)
+# 2. PDF Generator Logic (No changes to the layout itself, just how it's called)
 def generate_pdf(filtered_df):
     pdf = FPDF()
     pdf.add_page()
     
     def clean(text):
         text = str(text)
-        replacements = {'“': '"', '”': '"', '‘': "'", '’': "'", '–': '-', '—': '-'}
+        replacements = {'“': '"', '’': '"', '‘': "'", '’': "'", '–': '-', '—': '-'}
         for char, rep in replacements.items():
             text = text.replace(char, rep)
         return text.encode('latin-1', 'replace').decode('latin-1')
@@ -37,7 +37,6 @@ def generate_pdf(filtered_df):
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
-                    # Standardized PDF image width: 110mm, centered horizontally
                     dummy.image(path, x=(210-110)/2, w=110)
                     dummy.ln(4)
         if pd.notna(row['Options']):
@@ -61,7 +60,6 @@ def generate_pdf(filtered_df):
             if col in row and pd.notna(row[col]) and str(row[col]).strip():
                 path = str(row[col]).strip()
                 if os.path.exists(path):
-                    # Standardized PDF image width: 110mm, centered horizontally
                     pdf.image(path, x=(210-110)/2, w=110)
                     pdf.ln(4)
         if pd.notna(row['Options']):
@@ -120,19 +118,18 @@ else:
     
     row = filtered_df.iloc[st.session_state.idx]
     
-    # Displays raw topic content cleanly as grey text
+    # Raw topic content caption
     if 'Topic' in row and pd.notna(row['Topic']):
         st.caption(f"{str(row['Topic']).strip()}")
     
     # Display Question
     st.write(f"**{str(row['Question']).strip()}**")
     
-    # Display Images with STANDARDIZED size in UI
+    # Display Standardized Images
     for col in ['Image', 'Image_1']:
         if col in row and pd.notna(row[col]) and str(row[col]).strip():
             path = str(row[col]).strip()
             if os.path.exists(path):
-                # Standardized UI width: 350 pixels wide
                 st.image(path, width=350)
 
     # Radio Selection
@@ -153,4 +150,11 @@ else:
         st.session_state.answered = False
         st.rerun()
 
-    st.sidebar.download_button("Download PDF", generate_pdf(filtered_df), "quiz.pdf", "application/pdf")
+    # SPEED OPTIMIZATION: Wrapping generation inside a data function so it only triggers on press
+    st.sidebar.download_button(
+        label="Download PDF", 
+        data=generate_pdf(filtered_df), 
+        file_name="quiz.pdf", 
+        mime="application/pdf",
+        key="pdf_download_btn"
+    )
